@@ -45,17 +45,20 @@ var _FRICTION = 0.92;
 
 var heroX;
 var heroY;
-var heroWidth = 64;
-var heroHeight = 64;
+var heroSpeed = 0.05;
+var heroAngle = 0;
+var heroWidth = 32;
+var heroHeight = 32;
 var heroVelocityX = 0;
 var heroVelocityY = 0;
 var heroMaxVelocityX = 20;
 var heroMaxVelocityY = 10;
 var heroMoveSpeed = 1;
 var heroJumpSpeed = 10;
-var heroIsJumping = false;
-var heroCanJump = true;
 var heroColor = 'lightGray';
+
+var angleChangeRate = 0.01 * Math.PI;
+var laserPower = 1;
 
 window.onload = function()
 {
@@ -69,7 +72,7 @@ window.onload = function()
 	document.addEventListener('mouseup', mouseReleased);
 
 	heroX = canvas.width/2;
-	heroY = canvas.height - heroHeight;
+	heroY = canvas.height/2;
 
 	setInterval(function()
 	{
@@ -80,64 +83,30 @@ window.onload = function()
 
 function update()
 {
-
-	if (!heroIsJumping && !jumpKeyHeld)
+	if(jumpKeyHeld)
 	{
-		heroCanJump = true;
-	}
-	if (jumpKeyHeld && heroCanJump)
-	{
-		heroIsJumping = true;
-		heroCanJump = false
-		heroVelocityY = -heroJumpSpeed;
-		jumpButtonHoldAvailable = true;
-	}
-
-	if (leftKeyHeld)
-	{
-		heroVelocityX += -heroMoveSpeed;
-	}
-	else if (rightKeyHeld)
-	{
-		heroVelocityX += heroMoveSpeed;
-	}
-
-	if (heroIsJumping)
-	{
-		if(jumpKeyHeld && jumpButtonHoldAvailable && heroVelocityY < 0) {
-			heroY -= jumpButtonPower;
-		}
-		else if (heroVelocityY < 0)
-		{
-			heroVelocityY = 0;
-			jumpButtonHoldAvailable = false;
-		}
-		heroVelocityX *= _AIR_RESISTANCE;
+		heroVelocityX -= Math.cos(heroAngle) * heroSpeed;
+		heroVelocityY -= Math.sin(heroAngle) * heroSpeed;
+		laserPower += 0.1;
 	}
 	else
 	{
-		heroVelocityX *= _FRICTION;
+		heroAngle += angleChangeRate;
+		laserPower = 1;
 	}
 
-	if (heroVelocityX > heroMaxVelocityX)
+	if (heroVelocityX > 2)
 	{
-		heroVelocityX = heroMaxVelocityX;
-	}
-	else if	(heroVelocityX < -heroMaxVelocityX)
-	{
-			heroVelocityX = -heroMaxVelocityX;
+		heroVelocityX = 2;
 	}
 
-	heroVelocityY += _GRAVITY;
-	heroY += heroVelocityY;
+	if (heroVelocityY > 2)
+	{
+		heroVelocityY = 2;
+	}
+
 	heroX += heroVelocityX;
-
-	if (heroY > canvas.height - heroHeight)
-	{
-		heroY = canvas.height - heroHeight;
-		heroVelocityY = 0;
-		heroIsJumping = false;
-	}
+	heroY += heroVelocityY;
 
 	panelUpdate(debugPanel);
 }
@@ -146,7 +115,17 @@ function draw()
 {
 	colorRect(0, 0, canvas.width, canvas.height, backgroundColor);
 	drawPanelWithButtons(debugPanel, PRECISION);
-	colorRect(heroX, heroY, heroWidth, heroHeight, heroColor);
+	colorRect(heroX-heroWidth/2, heroY-heroHeight/2, heroWidth, heroHeight, heroColor);
+
+	var x = Math.cos(heroAngle);
+	var y = Math.sin(heroAngle);
+
+	context.strokeStyle = 'yellow';
+	context.beginPath();
+	context.moveTo(heroX, heroY);
+	context.lineTo(heroX+x*100, heroY+y*100);
+	context.lineWidth = laserPower;
+	context.stroke();
 }
 
 function keyPressed(evt)
@@ -216,3 +195,13 @@ function calculateMousePos(evt)
 	y: mouseY
   };
 }
+//
+// function calculateAngleFrom(this, that)
+// {
+// 	x1 = that.x;
+// 	x2 = this.x;
+// 	y1 = that.y;
+// 	y2 = this.y;
+//
+// 	return Math.atan2(y2 - y1, x2 - x1);
+// }
