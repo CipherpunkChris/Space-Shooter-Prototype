@@ -45,20 +45,26 @@ var _FRICTION = 0.92;
 
 var heroX;
 var heroY;
+var heroVelocityX = 0;
+var heroVelocityY = 0;
+var heroMaxVelocity = 3.5;
 var heroSpeed = 0.05;
 var heroAngle = 0;
 var heroWidth = 32;
 var heroHeight = 32;
-var heroVelocityX = 0;
-var heroVelocityY = 0;
-var heroMaxVelocityX = 20;
-var heroMaxVelocityY = 10;
-var heroMoveSpeed = 1;
-var heroJumpSpeed = 10;
 var heroColor = 'lightGray';
 
-var angleChangeRate = 0.01 * Math.PI;
-var laserPower = 1;
+var angleChangeRate = 0.05 * Math.PI;
+var laserPower = 0;
+
+var asteroidX;
+var asteroidY;
+var asteroidSize = 100;
+
+var oreX;
+var oreY;
+var oreSize = 10;
+var oreList = [];
 
 window.onload = function()
 {
@@ -74,6 +80,9 @@ window.onload = function()
 	heroX = canvas.width/2;
 	heroY = canvas.height/2;
 
+	asteroidX = canvas.width * 0.75;
+	asteroidY = canvas.height * 0.50;
+
 	setInterval(function()
 	{
 		update();
@@ -85,28 +94,61 @@ function update()
 {
 	if(jumpKeyHeld)
 	{
+		// hero fires laser that also propels him when button is held
 		heroVelocityX -= Math.cos(heroAngle) * heroSpeed;
 		heroVelocityY -= Math.sin(heroAngle) * heroSpeed;
+		if (laserPower == 0) // check if button just pressed
+		{
+			angleChangeRate = -angleChangeRate;
+		}
 		laserPower += 0.1;
 	}
 	else
 	{
+		// hero rotates when button is released
 		heroAngle += angleChangeRate;
-		laserPower = 1;
+		laserPower = 0;
 	}
 
-	if (heroVelocityX > 2)
+	// clamp velocity if it goes to high or low
+	if (heroVelocityX > heroMaxVelocity)
 	{
-		heroVelocityX = 2;
+		heroVelocityX = heroMaxVelocity;
 	}
-
-	if (heroVelocityY > 2)
+	if (heroVelocityY > heroMaxVelocity)
 	{
-		heroVelocityY = 2;
+		heroVelocityY = heroMaxVelocity;
+	}
+	if (heroVelocityX < -heroMaxVelocity)
+	{
+		heroVelocityX = -heroMaxVelocity;
+	}
+	if (heroVelocityY < -heroMaxVelocity)
+	{
+		heroVelocityY = -heroMaxVelocity;
 	}
 
+	// move hero
 	heroX += heroVelocityX;
 	heroY += heroVelocityY;
+
+	// wrap around canvas
+	if (heroX + heroWidth/2 < 0)
+	{
+		heroX = canvas.width + heroWidth/2;
+	}
+	if (heroY + heroHeight/2 < 0)
+	{
+		heroY = canvas.height + heroHeight/2;
+	}
+	if (heroX - heroWidth/2 > canvas.width)
+	{
+		heroX = 0 - heroWidth/2;
+	}
+	if (heroY - heroHeight/2 > canvas.height)
+	{
+		heroY = 0 - heroHeight/2;
+	}
 
 	panelUpdate(debugPanel);
 }
@@ -115,17 +157,24 @@ function draw()
 {
 	colorRect(0, 0, canvas.width, canvas.height, backgroundColor);
 	drawPanelWithButtons(debugPanel, PRECISION);
+
+	colorCircle(asteroidX, asteroidY, asteroidSize, 'saddleBrown');
 	colorRect(heroX-heroWidth/2, heroY-heroHeight/2, heroWidth, heroHeight, heroColor);
 
-	var x = Math.cos(heroAngle);
-	var y = Math.sin(heroAngle);
+	var targetX = heroX + Math.cos(heroAngle) * 100;
+	var targetY = heroY + Math.sin(heroAngle) * 100;
 
-	context.strokeStyle = 'yellow';
-	context.beginPath();
-	context.moveTo(heroX, heroY);
-	context.lineTo(heroX+x*100, heroY+y*100);
-	context.lineWidth = laserPower;
-	context.stroke();
+	if (laserPower > 0)
+	{
+		context.strokeStyle = 'turquoise';
+		context.beginPath();
+		context.moveTo(heroX, heroY);
+		context.lineTo(targetX, targetY);
+		context.lineWidth = laserPower;
+		context.stroke();
+	}
+	colorRect(targetX-3, targetY-3, 6, 6, 'orange');
+
 }
 
 function keyPressed(evt)
